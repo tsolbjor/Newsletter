@@ -1,7 +1,7 @@
 # Newsletter for EPiServer #
-A free module for sending newsletters from your EPiServer CMS or Commerce site. You can send the content from pages based on one or more newsletter pagetypes to multiple recipients, using a cloud service or your own SMTP server.
+An open source module for sending newsletters from your EPiServer CMS or Commerce site. You can send the content from pages based on one or more newsletter pagetypes to multiple recipients, using a cloud service or your own SMTP server.
 
->This is a port of the old EPiSendMail (BV Network Newsletter) module from EPiCode, rewritten to support EPiServer CMS and Commerce 7.5 and newer (including CMS 8).
+>This is a port of the old EPiSendMail (BV Network Newsletter) module from EPiCode, rewritten to support EPiServer CMS and Commerce 7.5 and newer (including 8 and 9).
 
 ## Features ##
  * Create newsletters as pages in EPiServer
@@ -23,7 +23,7 @@ A free module for sending newsletters from your EPiServer CMS or Commerce site. 
 ## Installation ##
 The installation is done through Visual Studio using the EPiServer Nuget Feed (currently located on http://nuget.episerver.com/feed/packages.svc/) 
 
-Main Newsletter Add-on:
+Main Newsletter Add-on (includes SMTP and Mailgun senders):
 ```
 Install-Package EPiCode.Newsletter
 ```
@@ -76,7 +76,7 @@ When you install the module using Nuget, the following configuration is added to
     <section name="epicodeNewsletter" type="BVNetwork.EPiSendMail.Configuration.NewsletterConfigurationSection, BVNetwork.EPiSendMail" />
 </configSections>
 ...
-<epicodeNewsletter senderType="BVNetwork.EPiSendMail.Library.MailSenderNetSmtp, BVNetwork.EPiSendMail">
+<epicodeNewsletter senderType="BVNetwork.EPiSendMail.Library.MailSenderNetSmtp, BVNetwork.EPiSendMail" ignoreServiceStatus="false">
     <recipientListProviders>
         <add name="RecipientList" displayName="Add from one of your Recipient Lists" url="/modules/epicode.newsletter/plugin/recipientitemproviders/recipientprovider.ascx" />
         <add name="TextImport" displayName="Import from text" url="/modules/epicode.newsletter/plugin/recipientitemproviders/TextImportProvider.ascx" />
@@ -140,7 +140,7 @@ You can also use a pick up directory if you have a SMTP server on your network t
 **Note!** The `pickupDirectoryLocation` can be on a network share.
 
 ### Configuring Mailgun ###
-Change the `senderType` to the `<epicodeNewsletter>` section in web.config to use Mailgun:
+Change the `senderType` of the `<epicodeNewsletter>` section in web.config to use Mailgun:
 ```xml
 <epicodeNewsletter senderType="BVNetwork.EPiSendMail.Library.MailSenderMailgun, BVNetwork.EPiSendMail">
  ...
@@ -160,9 +160,12 @@ The Api keys can be found on the Mailgun Account home page: https://mailgun.com/
 You also need to configure your mail sending domain for your Mailgun account, which is well described on your Mailgun account page. For testing purposes, you can use the sandbox domain that is created when you register your Mailgun account.
 
 ### Configuring SendGrid ###
-Add the following keys to the `<appSettings>` section in web.config to use SendGrid:
+Change the `senderType` of the `<epicodeNewsletter>` section in web.config to use SendGrid:
 ```xml
-<add key="Newsletter.SenderType" value="BVNetwork.EPiSendMail.SendGrid.MailSenderSendGrid, BVNetwork.EPiSendMail.SendGrid" />
+<epicodeNewsletter senderType="BVNetwork.EPiSendMail.SendGrid.MailSenderSendGrid, BVNetwork.EPiSendMail.SendGrid">
+ ...
+</epicodeNewsletter>
+
 ```
 
 Add a new connectionString to configure your SendGrid account:
@@ -172,7 +175,7 @@ Add a new connectionString to configure your SendGrid account:
   <add name="EPiCode.Newsletter.SendGrid" connectionString="username=sendgridusername;password=sendgridpassword" providerName="Custom" />
 </connectionStrings>
 ```
-**Note!** You can create additional SendGrid users that only has access to the API, and not the full administration interface. It is recommended to create a separate account in order to authorize access to the SendGrid API.
+**Note!** You can create additional SendGrid users that only has access to the API, and not the full administration interface. It is recommended to create a separate account in order to provide access to the SendGrid API only.
 
 ### Access Rights ###
 By default, only members of the `CmsAdmins` and `NewsletterEditors` roles are allowed to send newsletters. You can add `NewsletterEditors` as a virtual role and add other roles to it if you do not want to add it as a group with individual users.
@@ -189,11 +192,15 @@ Example setting up a virtual role (in `episerver.framework` section of web.confi
     </providers>
 </virtualRoles>
 ```
+
+### Disable Service Warning ###
+In a load balanced environment, it is common to only let one server run scheduled jobs. You might not want to report that the scheduler is disabled, as this could confuse editors to think that the module is not working. On servers where the scheduler is disabled, set `ignoreServiceStatus="true"` on the `epicodeNewsletter` section. This will remove "The Scheduler is not running!" warning from the Newsletter UI.
+
 ## Troubleshooting ##
 If you get an error during startup like this: `Cannot add duplicate collection entry of type 'add' with unique key attribute 'name' set to 'ExtensionlessUrlHandler-Integrated-4.0'` please check your web.config and remove any duplicate `ExtensionlessUrlHandler-Integrated-4.0` handlers (under `system.webServer`)
 
 ### Missing Assembly Redirects ###
-In some cases, there are missing assembly redirects for some of the `System.Net` and `System.Web` assemblies. Make sure you have these in your web.config:
+In some cases, there are missing assembly redirects for some of the `System.Net` and `System.Web` assemblies. Make sure you have these (or newer versions) in your web.config:
 ```xml
 <assemblyBinding>
   ...
@@ -223,6 +230,7 @@ This module is open source and unsupported. Feel free to [register new issues](h
 
 ## Requirements ##
 Runtime:
+
 * EPiServer CMS 7.9 or newer
 * .NET 4.5
 
@@ -235,5 +243,5 @@ Runtime:
 * EPiServer Commerce 7.5 or newer for custom recipient lists
 
 ## Contributions by ##
-BV Network AS
-Departementenes sikkerhets- og serviceorganisasjon (DSS)
+* BV Network AS
+* Departementenes sikkerhets- og serviceorganisasjon (DSS)
